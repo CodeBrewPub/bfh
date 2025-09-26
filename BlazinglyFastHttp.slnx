@@ -1,0 +1,5 @@
+﻿<Solution>
+  <Project Path="BlazinglyFastHttp.Test\BlazinglyFastHttp.Test.csproj" Type="Classic C#" />
+  <Project Path="BlazinglyFastHttp\BlazinglyFastHttp.csproj" Type="Classic C#" />
+  <Project Path="ControlGroup\ControlGroup.csproj" Type="Classic C#" />
+</Solution>
