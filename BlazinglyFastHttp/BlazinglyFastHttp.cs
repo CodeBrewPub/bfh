@@ -5,10 +5,16 @@ using System.Text;
 
 namespace BlazinglyFastHttp;
 
+public class SocketReceiver : SocketAsyncEventArgs
+{
+
+}
+
 public class BlazinglyFastHttp(int port = 8080)
 {
     private Socket? _listenerSocket;
     private bool _isRunning;
+    private Memory<byte> _buffer = new byte[4096];
 
     public async Task Start()
     {
@@ -26,7 +32,6 @@ public class BlazinglyFastHttp(int port = 8080)
 
     private async Task AcceptLoop(Socket listener)
     {
-
         while (_isRunning)
         {
             try
@@ -47,28 +52,36 @@ public class BlazinglyFastHttp(int port = 8080)
 
     private static async Task HandleClient(Socket clientSocket)
     {
-        byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
+        byte[] readBuffer = ArrayPool<byte>.Shared.Rent(4096);
+        byte[] writeBuffer = ArrayPool<byte>.Shared.Rent(4096);
         try
         {
             await using var stream = new NetworkStream(clientSocket, ownsSocket: true);
-            int bytesRead = await stream.ReadAsync(buffer);
+            int bytesRead = await stream.ReadAsync(readBuffer);
             if (bytesRead == 0) return;
-            // Simple response
 
-            byte[] data = Encoding.UTF8.GetBytes(
+            const string response =
                 "HTTP/1.1 200 OK\r\n" +
                 "Content-Type: text/plain; charset=UTF-8\r\n" +
                 "Content-Length: 11\r\n" +
                 "Connection: close\r\n" +
                 "\r\n" +
-                "Hello World"
+                "Hello World";
+
+            Encoding.UTF8.GetBytes(
+                response,
+                0,
+                response.Length,
+                writeBuffer,
+                0
             );
 
-            await stream.WriteAsync(data);
+            await stream.WriteAsync(writeBuffer, 0, bytesRead);
         }
         finally
         {
-            ArrayPool<byte>.Shared.Return(buffer);
+            ArrayPool<byte>.Shared.Return(readBuffer);
+            ArrayPool<byte>.Shared.Return(writeBuffer);
             clientSocket.Close();
         }
     }
